@@ -9,7 +9,7 @@ import { BottomNav } from '@/components/layout/BottomNav';
 
 export default function SavedPage() {
   const { cafes, setSelectedCafe } = useCafeStore();
-  const { savedIds } = useSavedStore();
+  const { savedIds, _hasHydrated } = useSavedStore();
   const router = useRouter();
 
   const savedCafes = cafes.filter((c) => savedIds.includes(c.id));
@@ -28,7 +28,12 @@ export default function SavedPage() {
 
       {/* List */}
       <div className="flex-1 overflow-y-auto divide-y divide-zinc-50 pb-20">
-        {savedCafes.length === 0 ? (
+        {!_hasHydrated ? (
+          // Show nothing while localStorage is loading to avoid flashing "empty" state
+          <div className="flex items-center justify-center py-20">
+            <div className="w-6 h-6 border-2 border-zinc-200 border-t-zinc-500 rounded-full animate-spin" />
+          </div>
+        ) : savedCafes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center gap-3 px-6">
             <div className="w-12 h-12 bg-zinc-100 rounded-2xl flex items-center justify-center">
               <Bookmark className="w-6 h-6 text-zinc-400" />

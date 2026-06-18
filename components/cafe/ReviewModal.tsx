@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Star, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Cafe } from '@/types';
@@ -62,8 +63,8 @@ export function ReviewModal({ cafe, onClose }: ReviewModalProps) {
   const [done, setDone] = useState(false);
 
   if (!user) {
-    return (
-      <div className="fixed inset-0 z-[1100] flex items-end">
+    return createPortal(
+      <div className="fixed inset-0 z-[2000] flex items-end">
         <div className="absolute inset-0 bg-black/50" onClick={onClose} />
         <div className="relative w-full bg-white rounded-t-[24px] px-5 pt-6 pb-[max(24px,env(safe-area-inset-bottom,0px))] text-center">
           <p className="font-bold text-zinc-900 text-base mb-1">Sign in to write a review</p>
@@ -78,13 +79,14 @@ export function ReviewModal({ cafe, onClose }: ReviewModalProps) {
             Not now
           </button>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
   if (done) {
-    return (
-      <div className="fixed inset-0 z-[1100] flex items-end">
+    return createPortal(
+      <div className="fixed inset-0 z-[2000] flex items-end">
         <div className="absolute inset-0 bg-black/50" onClick={onClose} />
         <div className="relative w-full bg-white rounded-t-[24px] px-5 pt-8 pb-[max(32px,env(safe-area-inset-bottom,0px))] text-center">
           <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -99,7 +101,8 @@ export function ReviewModal({ cafe, onClose }: ReviewModalProps) {
             Done
           </button>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
@@ -171,8 +174,8 @@ export function ReviewModal({ cafe, onClose }: ReviewModalProps) {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[1100] flex items-end">
+  return createPortal(
+    <div className="fixed inset-0 z-[2000] flex items-end">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Sheet — fixed height, internal scroll */}
@@ -189,7 +192,7 @@ export function ReviewModal({ cafe, onClose }: ReviewModalProps) {
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-5">
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 py-5 flex flex-col gap-5">
           <StarRow label="Overall" value={rating} onChange={setRating} />
 
           <div className="h-px bg-zinc-100" />
@@ -231,6 +234,7 @@ export function ReviewModal({ cafe, onClose }: ReviewModalProps) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
