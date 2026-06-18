@@ -3,32 +3,28 @@
 import { Search, SlidersHorizontal, LogIn } from 'lucide-react';
 import { useAuthStore } from '@/lib/store/authStore';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 
 export function Header() {
-  const { user } = useAuthStore();
+  const { user, profile } = useAuthStore();
   const router = useRouter();
 
-  const handleProfileClick = async () => {
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-    // Signed in → sign out (profile page coming later)
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.refresh();
+  const handleProfileClick = () => {
+    router.push(user ? '/profile' : '/login');
   };
 
-  const initials = user?.user_metadata?.full_name
-    ? (user.user_metadata.full_name as string)
-        .split(' ')
-        .map((n: string) => n[0])
-        .slice(0, 2)
-        .join('')
-        .toUpperCase()
+  const fullName =
+    profile?.full_name ||
+    (user?.user_metadata?.full_name as string) ||
+    (user?.user_metadata?.name as string) ||
+    null;
+
+  const initials = fullName
+    ? fullName.trim().split(/\s+/).map((n: string) => n[0]).slice(0, 2).join('').toUpperCase()
     : user?.email?.[0].toUpperCase() ?? null;
+
+  const avatarUrl =
+    profile?.avatar_url || (user?.user_metadata?.avatar_url as string) || null;
 
   return (
     <div className="px-4 pt-safe pt-4 pb-2">
@@ -58,8 +54,11 @@ export function Header() {
           aria-label={user ? 'Account' : 'Sign in'}
           className="shrink-0 p-1 rounded-xl hover:bg-zinc-100 active:bg-zinc-200 transition-colors"
         >
-          {user && initials ? (
-            <div className="w-7 h-7 rounded-full bg-zinc-900 text-white text-[11px] font-bold flex items-center justify-center">
+          {user && avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={avatarUrl} alt="Profile" className="w-7 h-7 rounded-full object-cover" />
+          ) : user && initials ? (
+            <div className="w-7 h-7 rounded-full bg-amber-500 text-white text-[11px] font-bold flex items-center justify-center">
               {initials}
             </div>
           ) : (
