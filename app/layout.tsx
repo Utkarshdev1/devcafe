@@ -21,8 +21,12 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
+    statusBarStyle: 'black-translucent',
     title: 'DevCafé',
+  },
+  icons: {
+    apple: '/icons/apple-touch-icon.png',
+    icon: [{ url: '/icons/favicon-32.png', sizes: '32x32', type: 'image/png' }],
   },
   formatDetection: { telephone: false },
 };
