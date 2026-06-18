@@ -1,5 +1,6 @@
 import { Cafe } from '@/types';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const defaultHours = (open: string, close: string) => ({
   monday: { open, close, closed: false },
   tuesday: { open, close, closed: false },
