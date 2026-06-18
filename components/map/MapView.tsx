@@ -7,8 +7,13 @@ import 'leaflet/dist/leaflet.css';
 import { LocateFixed, Loader2, MapPin } from 'lucide-react';
 import { useCafeStore } from '@/lib/store/cafeStore';
 import { fetchNearbyCafes } from '@/lib/overpass';
+import { setMapRef, getMapRef } from '@/lib/mapRef';
 import { CafeMarker } from './CafeMarker';
 import { PUNE_CENTER } from '@/types';
+import { Cafe } from '@/types';
+
+const SHEET_OPEN_BOTTOM = 'calc(82vh + 8px)';
+const SHEET_PEEK_BOTTOM = '150px';
 
 const userIcon = L.divIcon({
   html: `<div style="
@@ -26,7 +31,7 @@ const userIcon = L.divIcon({
 async function loadCafes(
   lat: number,
   lng: number,
-  setCafes: (cafes: import('@/types').Cafe[]) => void,
+  setCafes: (cafes: Cafe[]) => void,
   setLoading: (loading: boolean) => void
 ) {
   setLoading(true);
@@ -38,6 +43,16 @@ async function loadCafes(
   } finally {
     setLoading(false);
   }
+}
+
+// Stores the Leaflet map instance so LocateButton can use it from outside MapContainer
+function MapRefSetter() {
+  const map = useMap();
+  useEffect(() => {
+    setMapRef(map);
+    return () => setMapRef(null);
+  }, [map]);
+  return null;
 }
 
 function MapController({ onLocationDenied }: { onLocationDenied: () => void }) {
@@ -59,7 +74,6 @@ function MapController({ onLocationDenied }: { onLocationDenied: () => void }) {
         await loadCafes(loc.lat, loc.lng, setCafes, setLoading);
       },
       () => {
-        // Denied — load real Pune cafés from OSM so the map isn't empty
         onLocationDenied();
         loadCafes(PUNE_CENTER.center.lat, PUNE_CENTER.center.lng, setCafes, setLoading);
       },
@@ -77,9 +91,12 @@ function MapController({ onLocationDenied }: { onLocationDenied: () => void }) {
   return null;
 }
 
-function LocateButton({ onLocated }: { onLocated: () => void }) {
-  const map = useMap();
-  const { userLocation, setUserLocation, setCafes, setLoading, isSheetOpen } = useCafeStore();
+export function MapView() {
+  const { filteredCafes, setSelectedCafe, setUserLocation, setCafes, setLoading,
+          userLocation, isLoading, isSheetOpen } = useCafeStore();
+  const [locationDenied, setLocationDenied] = useState(false);
+
+  const handleLocationDenied = useCallback(() => setLocationDenied(true), []);
 
   const handleLocate = () => {
     if (!navigator.geolocation) return;
@@ -87,46 +104,14 @@ function LocateButton({ onLocated }: { onLocated: () => void }) {
       async (pos) => {
         const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setUserLocation(loc);
-        map.flyTo([loc.lat, loc.lng], 15, { duration: 1 });
-        onLocated();
+        setLocationDenied(false);
+        const map = getMapRef();
+        if (map) map.flyTo([loc.lat, loc.lng], 15, { duration: 1 });
         await loadCafes(loc.lat, loc.lng, setCafes, setLoading);
       },
       () => {}
     );
   };
-
-  if (isSheetOpen) return null;
-
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        bottom: 148,
-        right: 16,
-        zIndex: 800,
-        pointerEvents: 'auto',
-      }}
-    >
-      <button
-        onClick={handleLocate}
-        title="Find cafés near me"
-        className="w-10 h-10 bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.15)] border border-zinc-200 flex items-center justify-center hover:bg-zinc-50 active:bg-zinc-100 transition-colors"
-      >
-        <LocateFixed
-          className="w-4 h-4"
-          style={{ color: userLocation ? '#3b82f6' : '#52525b' }}
-          strokeWidth={2.5}
-        />
-      </button>
-    </div>
-  );
-}
-
-export function MapView() {
-  const { filteredCafes, setSelectedCafe, userLocation, isLoading } = useCafeStore();
-  const [locationDenied, setLocationDenied] = useState(false);
-  const handleLocationDenied = useCallback(() => setLocationDenied(true), []);
-  const handleLocated = useCallback(() => setLocationDenied(false), []);
 
   return (
     <div className="relative w-full h-full">
@@ -142,8 +127,8 @@ export function MapView() {
           maxZoom={19}
         />
 
+        <MapRefSetter />
         <MapController onLocationDenied={handleLocationDenied} />
-        <LocateButton onLocated={handleLocated} />
 
         {userLocation && (
           <Marker
@@ -162,6 +147,24 @@ export function MapView() {
         ))}
       </MapContainer>
 
+      {/* Locate button — floats above sheet, moves with it */}
+      <div
+        className="absolute right-4 z-[800] transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]"
+        style={{ bottom: isSheetOpen ? SHEET_OPEN_BOTTOM : SHEET_PEEK_BOTTOM }}
+      >
+        <button
+          onClick={handleLocate}
+          title="Find cafés near me"
+          className="w-10 h-10 bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.15)] border border-zinc-200 flex items-center justify-center active:bg-zinc-100 transition-colors"
+        >
+          <LocateFixed
+            className="w-4 h-4"
+            style={{ color: userLocation ? '#3b82f6' : '#52525b' }}
+            strokeWidth={2.5}
+          />
+        </button>
+      </div>
+
       {/* Loading pill */}
       {isLoading && (
         <div className="absolute top-[88px] left-1/2 -translate-x-1/2 z-[800] pointer-events-none">
@@ -174,7 +177,7 @@ export function MapView() {
 
       {/* Location denied banner */}
       {locationDenied && !isLoading && (
-        <div className="absolute top-[88px] left-1/2 -translate-x-1/2 z-[800] w-[calc(100%-32px)] max-w-sm">
+        <div className="absolute top-[88px] left-1/2 -translate-x-1/2 z-[800] w-[calc(100%-32px)] max-w-sm pointer-events-none">
           <div className="flex items-center gap-2.5 bg-white/95 backdrop-blur-sm text-xs text-zinc-600 px-3.5 py-2.5 rounded-2xl shadow-md border border-zinc-200">
             <MapPin className="w-3.5 h-3.5 text-zinc-400 flex-shrink-0" />
             <span>Showing cafés in Pune. Tap <strong className="text-zinc-800">locate</strong> to use your position.</span>

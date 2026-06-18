@@ -48,10 +48,12 @@ export async function fetchNearbyCafes(
   lng: number,
   radiusMeters = 3000
 ): Promise<Cafe[]> {
-  const query = `[out:json][timeout:20];
+  const query = `[out:json][timeout:25];
 (
   node["amenity"="cafe"](around:${radiusMeters},${lat},${lng});
   node["amenity"="coffee_shop"](around:${radiusMeters},${lat},${lng});
+  node["shop"="coffee"](around:${radiusMeters},${lat},${lng});
+  node["amenity"="restaurant"]["cuisine"~"coffee|cafe",i](around:${radiusMeters},${lat},${lng});
 );
 out body;`;
 
