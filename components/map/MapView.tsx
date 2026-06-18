@@ -1,13 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { LocateFixed, Loader2 } from 'lucide-react';
+import { LocateFixed, Loader2, MapPin } from 'lucide-react';
 import { useCafeStore } from '@/lib/store/cafeStore';
 import { fetchNearbyCafes } from '@/lib/overpass';
-import { MOCK_CAFES } from '@/lib/mock-data';
 import { CafeMarker } from './CafeMarker';
 import { PUNE_CENTER } from '@/types';
 
@@ -24,13 +23,31 @@ const userIcon = L.divIcon({
   iconAnchor: [8, 8],
 });
 
-function MapController() {
+async function loadCafes(
+  lat: number,
+  lng: number,
+  setCafes: (cafes: import('@/types').Cafe[]) => void,
+  setLoading: (loading: boolean) => void
+) {
+  setLoading(true);
+  try {
+    const cafes = await fetchNearbyCafes(lat, lng, 5000);
+    setCafes(cafes);
+  } catch {
+    setCafes([]);
+  } finally {
+    setLoading(false);
+  }
+}
+
+function MapController({ onLocationDenied }: { onLocationDenied: () => void }) {
   const map = useMap();
   const { setUserLocation, setCafes, setLoading, setSelectedCafe, setSheetOpen } = useCafeStore();
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      setCafes(MOCK_CAFES);
+      onLocationDenied();
+      loadCafes(PUNE_CENTER.center.lat, PUNE_CENTER.center.lng, setCafes, setLoading);
       return;
     }
 
@@ -39,24 +56,16 @@ function MapController() {
         const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setUserLocation(loc);
         map.flyTo([loc.lat, loc.lng], 14, { duration: 1.5 });
-
-        setLoading(true);
-        try {
-          const cafes = await fetchNearbyCafes(loc.lat, loc.lng, 3000);
-          setCafes(cafes.length > 0 ? cafes : MOCK_CAFES);
-        } catch {
-          setCafes(MOCK_CAFES);
-        } finally {
-          setLoading(false);
-        }
+        await loadCafes(loc.lat, loc.lng, setCafes, setLoading);
       },
       () => {
-        // Location denied — show Pune cafés as default
-        setCafes(MOCK_CAFES);
+        // Denied — load real Pune cafés from OSM so the map isn't empty
+        onLocationDenied();
+        loadCafes(PUNE_CENTER.center.lat, PUNE_CENTER.center.lng, setCafes, setLoading);
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
-  }, [map, setUserLocation, setCafes, setLoading]);
+  }, [map, setUserLocation, setCafes, setLoading, onLocationDenied]);
 
   useMapEvents({
     click() {
@@ -68,7 +77,7 @@ function MapController() {
   return null;
 }
 
-function LocateButton() {
+function LocateButton({ onLocated }: { onLocated: () => void }) {
   const map = useMap();
   const { userLocation, setUserLocation, setCafes, setLoading } = useCafeStore();
 
@@ -79,16 +88,8 @@ function LocateButton() {
         const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setUserLocation(loc);
         map.flyTo([loc.lat, loc.lng], 15, { duration: 1 });
-
-        setLoading(true);
-        try {
-          const cafes = await fetchNearbyCafes(loc.lat, loc.lng, 3000);
-          setCafes(cafes.length > 0 ? cafes : MOCK_CAFES);
-        } catch {
-          setCafes(MOCK_CAFES);
-        } finally {
-          setLoading(false);
-        }
+        onLocated();
+        await loadCafes(loc.lat, loc.lng, setCafes, setLoading);
       },
       () => {}
     );
@@ -121,6 +122,7 @@ function LocateButton() {
 
 export function MapView() {
   const { filteredCafes, setSelectedCafe, userLocation, isLoading } = useCafeStore();
+  const [locationDenied, setLocationDenied] = useState(false);
 
   return (
     <div className="relative w-full h-full">
@@ -136,8 +138,8 @@ export function MapView() {
           maxZoom={19}
         />
 
-        <MapController />
-        <LocateButton />
+        <MapController onLocationDenied={() => setLocationDenied(true)} />
+        <LocateButton onLocated={() => setLocationDenied(false)} />
 
         {userLocation && (
           <Marker
@@ -156,12 +158,22 @@ export function MapView() {
         ))}
       </MapContainer>
 
-      {/* Loading pill — sits above the map, below the header */}
+      {/* Loading pill */}
       {isLoading && (
         <div className="absolute top-[88px] left-1/2 -translate-x-1/2 z-[800] pointer-events-none">
           <div className="flex items-center gap-2 bg-white/95 backdrop-blur-sm text-xs font-medium text-zinc-600 px-3.5 py-2 rounded-full shadow-md border border-zinc-200">
             <Loader2 className="w-3 h-3 animate-spin text-zinc-400" />
             Finding cafés nearby…
+          </div>
+        </div>
+      )}
+
+      {/* Location denied banner */}
+      {locationDenied && !isLoading && (
+        <div className="absolute top-[88px] left-1/2 -translate-x-1/2 z-[800] w-[calc(100%-32px)] max-w-sm">
+          <div className="flex items-center gap-2.5 bg-white/95 backdrop-blur-sm text-xs text-zinc-600 px-3.5 py-2.5 rounded-2xl shadow-md border border-zinc-200">
+            <MapPin className="w-3.5 h-3.5 text-zinc-400 flex-shrink-0" />
+            <span>Showing cafés in Pune. Tap <strong className="text-zinc-800">locate</strong> to use your position.</span>
           </div>
         </div>
       )}
