@@ -41,6 +41,9 @@ export interface Cafe {
   power_outlets: PowerOutlets;
   rating: number;
   review_count: number;
+  avg_wifi_rating?: number | null;
+  avg_noise_rating?: number | null;
+  avg_power_rating?: number | null;
   images: string[];
   opening_hours: OpeningHours;
   price_range: PriceRange;

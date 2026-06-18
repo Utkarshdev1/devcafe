@@ -152,25 +152,43 @@ export function ReviewModal({ cafe, onClose }: ReviewModalProps) {
 
       if (reviewErr) throw reviewErr;
 
-      // Compute the true average from all reviews for this café
+      // Compute averages from all reviews for this café
       const { data: allReviews } = await supabase
         .from('reviews')
-        .select('rating')
+        .select('rating, wifi_rating, noise_rating, power_rating')
         .eq('cafe_id', cafeRow.id);
 
       const reviewCount = allReviews?.length ?? 1;
-      const avgRating = allReviews?.length
-        ? allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length
-        : rating;
+      const avg = (field: 'rating' | 'wifi_rating' | 'noise_rating' | 'power_rating') => {
+        const vals = (allReviews ?? []).map((r) => r[field]).filter((v): v is number => v != null);
+        return vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
+      };
 
-      // Write computed rating back to cafes table so future loads pick it up
+      const avgRating       = avg('rating') ?? rating;
+      const avgWifiRating   = avg('wifi_rating');
+      const avgNoiseRating  = avg('noise_rating');
+      const avgPowerRating  = avg('power_rating');
+
+      // Write all averages back to cafes table so future loads pick them up
       await supabase
         .from('cafes')
-        .update({ rating: avgRating, review_count: reviewCount })
+        .update({
+          rating: avgRating,
+          review_count: reviewCount,
+          avg_wifi_rating: avgWifiRating,
+          avg_noise_rating: avgNoiseRating,
+          avg_power_rating: avgPowerRating,
+        })
         .eq('id', cafeRow.id);
 
       // Patch the in-memory store so listing + detail update immediately
-      updateCafe(cafe.id, { rating: avgRating, review_count: reviewCount });
+      updateCafe(cafe.id, {
+        rating: avgRating,
+        review_count: reviewCount,
+        avg_wifi_rating: avgWifiRating,
+        avg_noise_rating: avgNoiseRating,
+        avg_power_rating: avgPowerRating,
+      });
 
       setDone(true);
     } catch (err: unknown) {

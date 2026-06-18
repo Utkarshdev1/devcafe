@@ -69,6 +69,8 @@ export function CafeDetail({ cafe }: CafeDetailProps) {
             <span className="text-sm font-bold text-zinc-900">
               {cafe.wifi_speed_mbps
                 ? `${cafe.wifi_speed_mbps} Mbps`
+                : cafe.avg_wifi_rating != null
+                ? `${cafe.avg_wifi_rating.toFixed(1)} ★`
                 : cafe.amenities.includes('wifi')
                 ? 'Available'
                 : '—'}
@@ -81,7 +83,9 @@ export function CafeDetail({ cafe }: CafeDetailProps) {
               <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide">Noise</span>
             </div>
             <span className="text-sm font-bold text-zinc-900 capitalize">
-              {NOISE_LABEL[cafe.noise_level] ?? '—'}
+              {cafe.avg_noise_rating != null
+                ? `${cafe.avg_noise_rating.toFixed(1)} ★`
+                : NOISE_LABEL[cafe.noise_level] ?? '—'}
             </span>
           </div>
 
@@ -91,7 +95,9 @@ export function CafeDetail({ cafe }: CafeDetailProps) {
               <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide">Outlets</span>
             </div>
             <span className="text-sm font-bold text-zinc-900">
-              {OUTLET_LABEL[cafe.power_outlets] ?? '—'}
+              {cafe.avg_power_rating != null
+                ? `${cafe.avg_power_rating.toFixed(1)} ★`
+                : OUTLET_LABEL[cafe.power_outlets] ?? '—'}
             </span>
           </div>
         </div>

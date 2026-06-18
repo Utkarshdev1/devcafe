@@ -19,13 +19,22 @@ async function mergeSupabaseRatings(cafes: Cafe[]): Promise<Cafe[]> {
     const supabase = createClient();
     const { data } = await supabase
       .from('cafes')
-      .select('osm_id, rating, review_count')
+      .select('osm_id, rating, review_count, avg_wifi_rating, avg_noise_rating, avg_power_rating')
       .in('osm_id', cafes.map((c) => c.id));
     if (!data?.length) return cafes;
     const map = new Map(data.map((d) => [d.osm_id, d]));
     return cafes.map((c) => {
       const sb = map.get(c.id);
-      return sb ? { ...c, rating: Number(sb.rating) || 0, review_count: sb.review_count || 0 } : c;
+      return sb
+        ? {
+            ...c,
+            rating: Number(sb.rating) || 0,
+            review_count: sb.review_count || 0,
+            avg_wifi_rating: sb.avg_wifi_rating ?? null,
+            avg_noise_rating: sb.avg_noise_rating ?? null,
+            avg_power_rating: sb.avg_power_rating ?? null,
+          }
+        : c;
     });
   } catch {
     return cafes;
