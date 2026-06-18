@@ -1,11 +1,16 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+const AUTH_PATHS = ['/login', '/auth'];
+
+function isAuthPath(pathname: string) {
+  return AUTH_PATHS.some((p) => pathname.startsWith(p));
+}
+
 export async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // Skip Supabase session refresh if env vars aren't configured yet
   if (!supabaseUrl || !supabaseKey) {
     return NextResponse.next({ request });
   }
@@ -27,14 +32,30 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // Refresh the session — required for Supabase Auth
-  await supabase.auth.getUser();
+  // Refresh session — required for Supabase Auth
+  const { data: { user } } = await supabase.auth.getUser();
+  const { pathname } = request.nextUrl;
+
+  // API routes: never redirect — let them handle their own auth
+  if (pathname.startsWith('/api/')) {
+    return supabaseResponse;
+  }
+
+  // Redirect authenticated users away from login
+  if (user && isAuthPath(pathname)) {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+
+  // Redirect unauthenticated users to login
+  if (!user && !isAuthPath(pathname)) {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
 
   return supabaseResponse;
 }
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|icons|manifest.json|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|icons|manifest.json|sw.js|workbox.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

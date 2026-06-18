@@ -1,11 +1,19 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/lib/store/authStore';
 
+const AUTH_PATHS = ['/login', '/auth'];
+
+function isAuthPath(pathname: string) {
+  return AUTH_PATHS.some((p) => pathname.startsWith(p));
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { setUser, setLoading } = useAuthStore();
+  const { setUser, setProfile, setLoading } = useAuthStore();
+  const router = useRouter();
 
   useEffect(() => {
     if (
@@ -18,17 +26,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const supabase = createClient();
 
+    async function fetchProfile(userId: string) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      setProfile(data ?? null);
+    }
+
+    // Seed initial session on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+      const user = session?.user ?? null;
+      setUser(user);
       setLoading(false);
+      if (user) {
+        fetchProfile(user.id);
+        // Already authenticated — leave login page
+        if (isAuthPath(window.location.pathname)) router.replace('/');
+      } else {
+        // No session — send to login
+        if (!isAuthPath(window.location.pathname)) router.replace('/login');
+      }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
+    // Keep store in sync as auth state changes (sign in, sign out, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        const user = session?.user ?? null;
+        setUser(user);
+        if (user) {
+          fetchProfile(user.id);
+          if (isAuthPath(window.location.pathname)) router.replace('/');
+        } else {
+          setProfile(null);
+          if (!isAuthPath(window.location.pathname)) router.replace('/login');
+        }
+      }
+    );
 
     return () => subscription.unsubscribe();
-  }, [setUser, setLoading]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return <>{children}</>;
 }
