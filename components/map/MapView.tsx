@@ -31,7 +31,7 @@ async function loadCafes(
 ) {
   setLoading(true);
   try {
-    const cafes = await fetchNearbyCafes(lat, lng, 5000);
+    const cafes = await fetchNearbyCafes(lat, lng, 10000);
     setCafes(cafes);
   } catch {
     setCafes([]);
@@ -79,7 +79,7 @@ function MapController({ onLocationDenied }: { onLocationDenied: () => void }) {
 
 function LocateButton({ onLocated }: { onLocated: () => void }) {
   const map = useMap();
-  const { userLocation, setUserLocation, setCafes, setLoading } = useCafeStore();
+  const { userLocation, setUserLocation, setCafes, setLoading, isSheetOpen } = useCafeStore();
 
   const handleLocate = () => {
     if (!navigator.geolocation) return;
@@ -94,6 +94,8 @@ function LocateButton({ onLocated }: { onLocated: () => void }) {
       () => {}
     );
   };
+
+  if (isSheetOpen) return null;
 
   return (
     <div
