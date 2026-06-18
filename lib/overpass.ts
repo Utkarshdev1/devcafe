@@ -62,12 +62,10 @@ out body;`;
 
   let res: Response;
   try {
-    res = await fetch(OVERPASS_URL, {
-      method: 'POST',
-      body: query,
-      headers: { 'Content-Type': 'text/plain' },
-      signal: controller.signal,
-    });
+    res = await fetch(
+      `${OVERPASS_URL}?data=${encodeURIComponent(query)}`,
+      { signal: controller.signal }
+    );
   } finally {
     clearTimeout(timer);
   }
