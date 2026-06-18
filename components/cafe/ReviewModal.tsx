@@ -152,19 +152,25 @@ export function ReviewModal({ cafe, onClose }: ReviewModalProps) {
 
       if (reviewErr) throw reviewErr;
 
-      // Fetch the updated rating from Supabase (trigger may take a moment)
-      const { data: updated } = await supabase
-        .from('cafes')
-        .select('rating, review_count')
-        .eq('id', cafeRow.id)
-        .single();
+      // Compute the true average from all reviews for this café
+      const { data: allReviews } = await supabase
+        .from('reviews')
+        .select('rating')
+        .eq('cafe_id', cafeRow.id);
 
-      if (updated) {
-        updateCafe(cafe.id, {
-          rating: Number(updated.rating),
-          review_count: updated.review_count,
-        });
-      }
+      const reviewCount = allReviews?.length ?? 1;
+      const avgRating = allReviews?.length
+        ? allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length
+        : rating;
+
+      // Write computed rating back to cafes table so future loads pick it up
+      await supabase
+        .from('cafes')
+        .update({ rating: avgRating, review_count: reviewCount })
+        .eq('id', cafeRow.id);
+
+      // Patch the in-memory store so listing + detail update immediately
+      updateCafe(cafe.id, { rating: avgRating, review_count: reviewCount });
 
       setDone(true);
     } catch (err: unknown) {

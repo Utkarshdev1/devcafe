@@ -8,9 +8,29 @@ import { LocateFixed, Loader2, MapPin } from 'lucide-react';
 import { useCafeStore } from '@/lib/store/cafeStore';
 import { fetchNearbyCafes } from '@/lib/overpass';
 import { setMapRef, getMapRef } from '@/lib/mapRef';
+import { createClient } from '@/lib/supabase/client';
 import { CafeMarker } from './CafeMarker';
 import { PUNE_CENTER } from '@/types';
 import { Cafe } from '@/types';
+
+async function mergeSupabaseRatings(cafes: Cafe[]): Promise<Cafe[]> {
+  if (cafes.length === 0) return cafes;
+  try {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from('cafes')
+      .select('osm_id, rating, review_count')
+      .in('osm_id', cafes.map((c) => c.id));
+    if (!data?.length) return cafes;
+    const map = new Map(data.map((d) => [d.osm_id, d]));
+    return cafes.map((c) => {
+      const sb = map.get(c.id);
+      return sb ? { ...c, rating: Number(sb.rating) || 0, review_count: sb.review_count || 0 } : c;
+    });
+  } catch {
+    return cafes;
+  }
+}
 
 const SHEET_OPEN_BOTTOM = 'calc(82vh + 8px)';
 const SHEET_PEEK_BOTTOM = '150px';
@@ -56,18 +76,22 @@ async function loadCafes(
   setLoading: (loading: boolean) => void
 ) {
   const cached = readCache(lat, lng);
-  if (cached) { setCafes(cached); return; }
+  const osmCafes = cached ?? await (async () => {
+    setLoading(true);
+    try {
+      const cafes = await fetchNearbyCafes(lat, lng, 10000);
+      if (cafes.length > 0) writeCache(lat, lng, cafes);
+      return cafes;
+    } catch {
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  })();
 
-  setLoading(true);
-  try {
-    const cafes = await fetchNearbyCafes(lat, lng, 10000);
-    setCafes(cafes);
-    if (cafes.length > 0) writeCache(lat, lng, cafes);
-  } catch {
-    setCafes([]);
-  } finally {
-    setLoading(false);
-  }
+  // Overlay Supabase ratings so reviews survive navigation / cache reads
+  const withRatings = await mergeSupabaseRatings(osmCafes);
+  setCafes(withRatings);
 }
 
 // Stores the Leaflet map instance so LocateButton can use it from outside MapContainer
