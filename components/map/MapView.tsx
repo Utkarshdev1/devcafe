@@ -28,16 +28,41 @@ const userIcon = L.divIcon({
   iconAnchor: [8, 8],
 });
 
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function cacheKey(lat: number, lng: number) {
+  return `dc_cafes_${lat.toFixed(2)}_${lng.toFixed(2)}`;
+}
+
+function readCache(lat: number, lng: number): Cafe[] | null {
+  try {
+    const raw = sessionStorage.getItem(cacheKey(lat, lng));
+    if (!raw) return null;
+    const { cafes, ts } = JSON.parse(raw);
+    return Date.now() - ts < CACHE_TTL ? cafes : null;
+  } catch { return null; }
+}
+
+function writeCache(lat: number, lng: number, cafes: Cafe[]) {
+  try {
+    sessionStorage.setItem(cacheKey(lat, lng), JSON.stringify({ cafes, ts: Date.now() }));
+  } catch { /* ignore */ }
+}
+
 async function loadCafes(
   lat: number,
   lng: number,
   setCafes: (cafes: Cafe[]) => void,
   setLoading: (loading: boolean) => void
 ) {
+  const cached = readCache(lat, lng);
+  if (cached) { setCafes(cached); return; }
+
   setLoading(true);
   try {
     const cafes = await fetchNearbyCafes(lat, lng, 10000);
     setCafes(cafes);
+    if (cafes.length > 0) writeCache(lat, lng, cafes);
   } catch {
     setCafes([]);
   } finally {

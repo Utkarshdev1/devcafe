@@ -1,7 +1,5 @@
 import { Cafe, Amenity, OpeningHours } from '@/types';
 
-const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
-
 interface OSMNode {
   type: 'node';
   id: number;
@@ -46,31 +44,22 @@ function buildAddress(tags: Record<string, string>): string {
 export async function fetchNearbyCafes(
   lat: number,
   lng: number,
-  radiusMeters = 3000
+  radiusMeters = 10000
 ): Promise<Cafe[]> {
-  const query = `[out:json][timeout:25];
-(
-  node["amenity"="cafe"](around:${radiusMeters},${lat},${lng});
-  node["amenity"="coffee_shop"](around:${radiusMeters},${lat},${lng});
-  node["shop"="coffee"](around:${radiusMeters},${lat},${lng});
-  node["amenity"="restaurant"]["cuisine"~"coffee|cafe",i](around:${radiusMeters},${lat},${lng});
-);
-out body;`;
+  // Route through our own API to avoid CORS/406 issues with Overpass
+  const url = `/api/cafes?lat=${lat}&lng=${lng}&radius=${radiusMeters}`;
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 25_000);
+  const timer = setTimeout(() => controller.abort(), 28_000);
 
   let res: Response;
   try {
-    res = await fetch(
-      `${OVERPASS_URL}?data=${encodeURIComponent(query)}`,
-      { signal: controller.signal }
-    );
+    res = await fetch(url, { signal: controller.signal });
   } finally {
     clearTimeout(timer);
   }
 
-  if (!res.ok) throw new Error(`Overpass ${res.status}`);
+  if (!res.ok) throw new Error(`/api/cafes ${res.status}`);
 
   const data: OverpassResponse = await res.json();
 
