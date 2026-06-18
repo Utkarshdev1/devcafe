@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { LogOut, Bookmark, Star, Share2, Smartphone, X, ChevronRight } from 'lucide-react';
 import { useAuthStore } from '@/lib/store/authStore';
@@ -120,6 +120,17 @@ export default function ProfilePage() {
   const router = useRouter();
   const [showInstall, setShowInstall] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [reviewCount, setReviewCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    const supabase = createClient();
+    supabase
+      .from('reviews')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .then(({ count }) => setReviewCount(count ?? 0));
+  }, [user]);
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -209,7 +220,9 @@ export default function ProfilePage() {
             <div className="flex-1 bg-white/10 rounded-2xl px-4 py-3">
               <div className="flex items-center gap-1.5 mb-0.5">
                 <Star className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-white font-bold text-lg leading-none">—</span>
+                <span className="text-white font-bold text-lg leading-none">
+                  {reviewCount === null ? '—' : reviewCount}
+                </span>
               </div>
               <span className="text-zinc-400 text-[11px] font-medium">Reviews written</span>
             </div>

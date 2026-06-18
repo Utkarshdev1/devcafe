@@ -16,6 +16,7 @@ interface CafeState {
 
   setCafes: (cafes: Cafe[]) => void;
   setSelectedCafe: (cafe: Cafe | null) => void;
+  updateCafe: (id: string, patch: Partial<Cafe>) => void;
   setFilter: (filter: Partial<CafeFilter>) => void;
   setViewport: (viewport: Partial<MapViewport>) => void;
   setSheetOpen: (open: boolean) => void;
@@ -73,6 +74,14 @@ export const useCafeStore = create<CafeState>((set, get) => ({
 
   setSelectedCafe: (cafe) =>
     set({ selectedCafe: cafe, isSheetOpen: !!cafe }),
+
+  updateCafe: (id, patch) =>
+    set((s) => {
+      const cafes = s.cafes.map((c) => (c.id === id ? { ...c, ...patch } : c));
+      const selectedCafe =
+        s.selectedCafe?.id === id ? { ...s.selectedCafe, ...patch } : s.selectedCafe;
+      return { cafes, filteredCafes: derive(cafes, s.filter, s.userLocation), selectedCafe };
+    }),
 
   setFilter: (partial) => {
     const filter = { ...get().filter, ...partial };

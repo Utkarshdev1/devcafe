@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Star } from 'lucide-react';
+import { X, Star, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Cafe } from '@/types';
 import { useAuthStore } from '@/lib/store/authStore';
+import { useCafeStore } from '@/lib/store/cafeStore';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 
@@ -31,11 +32,11 @@ function StarRow({
             key={n}
             type="button"
             onClick={() => onChange(n === value ? 0 : n)}
-            className="p-0.5"
+            className="p-0.5 active:scale-90 transition-transform"
           >
             <Star
               className={cn(
-                'w-6 h-6 transition-colors',
+                'w-7 h-7 transition-colors',
                 n <= value ? 'fill-amber-400 text-amber-400' : 'text-zinc-200'
               )}
             />
@@ -48,6 +49,7 @@ function StarRow({
 
 export function ReviewModal({ cafe, onClose }: ReviewModalProps) {
   const { user } = useAuthStore();
+  const { updateCafe } = useCafeStore();
   const router = useRouter();
 
   const [rating, setRating] = useState(0);
@@ -62,18 +64,18 @@ export function ReviewModal({ cafe, onClose }: ReviewModalProps) {
   if (!user) {
     return (
       <div className="fixed inset-0 z-[1100] flex items-end">
-        <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-        <div className="relative w-full bg-white rounded-t-[24px] px-5 py-6 text-center">
+        <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+        <div className="relative w-full bg-white rounded-t-[24px] px-5 pt-6 pb-[max(24px,env(safe-area-inset-bottom,0px))] text-center">
           <p className="font-bold text-zinc-900 text-base mb-1">Sign in to write a review</p>
-          <p className="text-sm text-zinc-500 mb-5">Your reviews help devs find the best spots to work</p>
+          <p className="text-sm text-zinc-500 mb-5">Your reviews help devs find the best spots</p>
           <button
             onClick={() => { onClose(); router.push('/login'); }}
-            className="bg-zinc-900 text-white rounded-2xl px-6 py-3 text-sm font-semibold w-full"
+            className="bg-zinc-900 text-white rounded-2xl px-6 py-3.5 text-sm font-semibold w-full"
           >
             Sign in
           </button>
           <button onClick={onClose} className="mt-3 text-sm text-zinc-400 py-2 w-full">
-            Cancel
+            Not now
           </button>
         </div>
       </div>
@@ -83,14 +85,17 @@ export function ReviewModal({ cafe, onClose }: ReviewModalProps) {
   if (done) {
     return (
       <div className="fixed inset-0 z-[1100] flex items-end">
-        <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-        <div className="relative w-full bg-white rounded-t-[24px] px-5 py-8 text-center">
-          <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Star className="w-6 h-6 fill-emerald-500 text-emerald-500" />
+        <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+        <div className="relative w-full bg-white rounded-t-[24px] px-5 pt-8 pb-[max(32px,env(safe-area-inset-bottom,0px))] text-center">
+          <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle2 className="w-7 h-7 text-emerald-500" />
           </div>
-          <p className="font-bold text-zinc-900 text-base mb-1">Review submitted!</p>
-          <p className="text-sm text-zinc-500 mb-5">Thanks for helping the dev community</p>
-          <button onClick={onClose} className="bg-zinc-900 text-white rounded-2xl px-6 py-3 text-sm font-semibold w-full">
+          <p className="font-bold text-zinc-900 text-lg mb-1">Review submitted!</p>
+          <p className="text-sm text-zinc-500 mb-6">Thanks for helping the dev community find great spots</p>
+          <button
+            onClick={onClose}
+            className="bg-zinc-900 text-white rounded-2xl py-3.5 text-sm font-semibold w-full active:bg-zinc-800"
+          >
             Done
           </button>
         </div>
@@ -143,6 +148,21 @@ export function ReviewModal({ cafe, onClose }: ReviewModalProps) {
       );
 
       if (reviewErr) throw reviewErr;
+
+      // Fetch the updated rating from Supabase (trigger may take a moment)
+      const { data: updated } = await supabase
+        .from('cafes')
+        .select('rating, review_count')
+        .eq('id', cafeRow.id)
+        .single();
+
+      if (updated) {
+        updateCafe(cafe.id, {
+          rating: Number(updated.rating),
+          review_count: updated.review_count,
+        });
+      }
+
       setDone(true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to submit — please try again');
@@ -153,10 +173,12 @@ export function ReviewModal({ cafe, onClose }: ReviewModalProps) {
 
   return (
     <div className="fixed inset-0 z-[1100] flex items-end">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full bg-white rounded-t-[24px] max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-white flex items-center justify-between px-4 pt-5 pb-3 border-b border-zinc-100">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+
+      {/* Sheet — fixed height, internal scroll */}
+      <div className="relative w-full bg-white rounded-t-[24px] flex flex-col max-h-[88vh]">
+        {/* Sticky header */}
+        <div className="flex-shrink-0 flex items-center justify-between px-4 pt-5 pb-3 border-b border-zinc-100">
           <div>
             <p className="text-[11px] text-zinc-400 uppercase tracking-wide font-semibold">Review</p>
             <p className="font-bold text-zinc-900 text-sm truncate max-w-[240px]">{cafe.name}</p>
@@ -166,15 +188,16 @@ export function ReviewModal({ cafe, onClose }: ReviewModalProps) {
           </button>
         </div>
 
-        <div className="px-4 py-5 flex flex-col gap-5">
-          {/* Overall */}
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-5">
           <StarRow label="Overall" value={rating} onChange={setRating} />
 
           <div className="h-px bg-zinc-100" />
 
-          {/* Dev-specific */}
           <div className="flex flex-col gap-4">
-            <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wide">For developers</p>
+            <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wide">
+              For developers
+            </p>
             <StarRow label="WiFi quality" value={wifiRating} onChange={setWifiRating} />
             <StarRow label="Noise level" value={noiseRating} onChange={setNoiseRating} />
             <StarRow label="Power outlets" value={powerRating} onChange={setPowerRating} />
@@ -182,7 +205,6 @@ export function ReviewModal({ cafe, onClose }: ReviewModalProps) {
 
           <div className="h-px bg-zinc-100" />
 
-          {/* Comment */}
           <div>
             <label className="text-sm font-medium text-zinc-700 block mb-2">
               Comment <span className="text-zinc-400 font-normal">(optional)</span>
@@ -190,14 +212,16 @@ export function ReviewModal({ cafe, onClose }: ReviewModalProps) {
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="How's the WiFi speed? Plenty of outlets? Good for long sessions?"
+              placeholder="How's the WiFi? Plenty of outlets? Good for long work sessions?"
               rows={3}
               className="w-full border border-zinc-200 rounded-2xl px-3.5 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-zinc-400 resize-none"
             />
           </div>
+        </div>
 
-          {error && <p className="text-xs text-red-500 -mt-2">{error}</p>}
-
+        {/* Sticky submit — always visible above keyboard / home bar */}
+        <div className="flex-shrink-0 px-4 pt-3 pb-[max(20px,env(safe-area-inset-bottom,0px))] border-t border-zinc-100 bg-white">
+          {error && <p className="text-xs text-red-500 mb-2">{error}</p>}
           <button
             onClick={handleSubmit}
             disabled={submitting || rating === 0}
@@ -205,8 +229,6 @@ export function ReviewModal({ cafe, onClose }: ReviewModalProps) {
           >
             {submitting ? 'Submitting…' : 'Submit Review'}
           </button>
-
-          <div className="pb-safe" />
         </div>
       </div>
     </div>
