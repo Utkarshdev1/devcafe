@@ -19,7 +19,7 @@ async function mergeSupabaseRatings(cafes: Cafe[]): Promise<Cafe[]> {
     const supabase = createClient();
     const { data } = await supabase
       .from('cafes')
-      .select('osm_id, rating, review_count, avg_wifi_rating, avg_noise_rating, avg_power_rating')
+      .select('osm_id, rating, review_count, wifi_speed_mbps, avg_wifi_rating, avg_noise_rating, avg_power_rating')
       .in('osm_id', cafes.map((c) => c.id));
     if (!data?.length) return cafes;
     const map = new Map(data.map((d) => [d.osm_id, d]));
@@ -30,6 +30,7 @@ async function mergeSupabaseRatings(cafes: Cafe[]): Promise<Cafe[]> {
             ...c,
             rating: Number(sb.rating) || 0,
             review_count: sb.review_count || 0,
+            wifi_speed_mbps: sb.wifi_speed_mbps ?? null,
             avg_wifi_rating: sb.avg_wifi_rating ?? null,
             avg_noise_rating: sb.avg_noise_rating ?? null,
             avg_power_rating: sb.avg_power_rating ?? null,

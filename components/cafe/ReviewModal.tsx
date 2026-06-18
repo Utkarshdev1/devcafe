@@ -55,6 +55,7 @@ export function ReviewModal({ cafe, onClose }: ReviewModalProps) {
 
   const [rating, setRating] = useState(0);
   const [wifiRating, setWifiRating] = useState(0);
+  const [wifiSpeed, setWifiSpeed] = useState('');
   const [noiseRating, setNoiseRating] = useState(0);
   const [powerRating, setPowerRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -137,12 +138,15 @@ export function ReviewModal({ cafe, onClose }: ReviewModalProps) {
 
       if (cafeErr) throw cafeErr;
 
+      const speedNum = wifiSpeed ? parseInt(wifiSpeed, 10) : null;
+
       const { error: reviewErr } = await supabase.from('reviews').upsert(
         {
           cafe_id: cafeRow.id,
           user_id: user.id,
           rating,
           wifi_rating: wifiRating || null,
+          wifi_speed_mbps: speedNum && speedNum > 0 ? speedNum : null,
           noise_rating: noiseRating || null,
           power_rating: powerRating || null,
           comment: comment.trim() || null,
@@ -155,36 +159,37 @@ export function ReviewModal({ cafe, onClose }: ReviewModalProps) {
       // Compute averages from all reviews for this café
       const { data: allReviews } = await supabase
         .from('reviews')
-        .select('rating, wifi_rating, noise_rating, power_rating')
+        .select('rating, wifi_rating, wifi_speed_mbps, noise_rating, power_rating')
         .eq('cafe_id', cafeRow.id);
 
       const reviewCount = allReviews?.length ?? 1;
-      const avg = (field: 'rating' | 'wifi_rating' | 'noise_rating' | 'power_rating') => {
+      const avg = (field: 'rating' | 'wifi_rating' | 'wifi_speed_mbps' | 'noise_rating' | 'power_rating') => {
         const vals = (allReviews ?? []).map((r) => r[field]).filter((v): v is number => v != null);
-        return vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
+        return vals.length ? Math.round((vals.reduce((s, v) => s + v, 0) / vals.length) * 10) / 10 : null;
       };
 
       const avgRating       = avg('rating') ?? rating;
       const avgWifiRating   = avg('wifi_rating');
+      const avgWifiSpeed    = avg('wifi_speed_mbps');
       const avgNoiseRating  = avg('noise_rating');
       const avgPowerRating  = avg('power_rating');
 
-      // Write all averages back to cafes table so future loads pick them up
       await supabase
         .from('cafes')
         .update({
           rating: avgRating,
           review_count: reviewCount,
+          wifi_speed_mbps: avgWifiSpeed,
           avg_wifi_rating: avgWifiRating,
           avg_noise_rating: avgNoiseRating,
           avg_power_rating: avgPowerRating,
         })
         .eq('id', cafeRow.id);
 
-      // Patch the in-memory store so listing + detail update immediately
       updateCafe(cafe.id, {
         rating: avgRating,
         review_count: reviewCount,
+        wifi_speed_mbps: avgWifiSpeed,
         avg_wifi_rating: avgWifiRating,
         avg_noise_rating: avgNoiseRating,
         avg_power_rating: avgPowerRating,
@@ -226,6 +231,27 @@ export function ReviewModal({ cafe, onClose }: ReviewModalProps) {
               For developers
             </p>
             <StarRow label="WiFi quality" value={wifiRating} onChange={setWifiRating} />
+
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-sm font-medium text-zinc-700">WiFi speed</span>
+                <p className="text-[11px] text-zinc-400">Run a speed test first</p>
+              </div>
+              <div className="flex items-center gap-1.5 bg-zinc-100 rounded-2xl px-3 py-2">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={2000}
+                  value={wifiSpeed}
+                  onChange={(e) => setWifiSpeed(e.target.value)}
+                  placeholder="—"
+                  className="w-14 bg-transparent text-sm font-bold text-zinc-900 text-right outline-none placeholder:text-zinc-400"
+                />
+                <span className="text-xs text-zinc-400 font-medium">Mbps</span>
+              </div>
+            </div>
+
             <StarRow label="Noise level" value={noiseRating} onChange={setNoiseRating} />
             <StarRow label="Power outlets" value={powerRating} onChange={setPowerRating} />
           </div>

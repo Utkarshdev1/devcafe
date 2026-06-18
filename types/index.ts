@@ -60,6 +60,7 @@ export interface Review {
   rating: number;
   comment: string;
   wifi_rating: number | null;
+  wifi_speed_mbps: number | null;
   power_rating: number | null;
   noise_rating: number | null;
   created_at: string;
