@@ -67,7 +67,11 @@ export function CafeDetail({ cafe }: CafeDetailProps) {
               <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide">WiFi</span>
             </div>
             <span className="text-sm font-bold text-zinc-900">
-              {cafe.wifi_speed_mbps ? `${cafe.wifi_speed_mbps}M` : '—'}
+              {cafe.wifi_speed_mbps
+                ? `${cafe.wifi_speed_mbps} Mbps`
+                : cafe.amenities.includes('wifi')
+                ? 'Available'
+                : '—'}
             </span>
           </div>
 
