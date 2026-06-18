@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -123,6 +123,8 @@ function LocateButton({ onLocated }: { onLocated: () => void }) {
 export function MapView() {
   const { filteredCafes, setSelectedCafe, userLocation, isLoading } = useCafeStore();
   const [locationDenied, setLocationDenied] = useState(false);
+  const handleLocationDenied = useCallback(() => setLocationDenied(true), []);
+  const handleLocated = useCallback(() => setLocationDenied(false), []);
 
   return (
     <div className="relative w-full h-full">
@@ -138,8 +140,8 @@ export function MapView() {
           maxZoom={19}
         />
 
-        <MapController onLocationDenied={() => setLocationDenied(true)} />
-        <LocateButton onLocated={() => setLocationDenied(false)} />
+        <MapController onLocationDenied={handleLocationDenied} />
+        <LocateButton onLocated={handleLocated} />
 
         {userLocation && (
           <Marker
