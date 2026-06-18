@@ -57,12 +57,20 @@ export async function fetchNearbyCafes(
 );
 out body;`;
 
-  const res = await fetch(OVERPASS_URL, {
-    method: 'POST',
-    body: query,
-    headers: { 'Content-Type': 'text/plain' },
-    signal: AbortSignal.timeout(22_000),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 25_000);
+
+  let res: Response;
+  try {
+    res = await fetch(OVERPASS_URL, {
+      method: 'POST',
+      body: `data=${encodeURIComponent(query)}`,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!res.ok) throw new Error(`Overpass ${res.status}`);
 
