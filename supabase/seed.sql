@@ -1,0 +1,57 @@
+insert into public.cafes (name, description, address, neighborhood, lat, lng, amenities, wifi_speed_mbps, noise_level, power_outlets, rating, review_count, opening_hours, price_range) values
+
+('Pagdandi Books Chai Café',
+ 'A cozy literary café perfect for deep work sessions. Surrounded by books with excellent chai and a hushed atmosphere that devs love.',
+ 'Baner-Pashan Link Rd, Bavdhan', 'Bavdhan', 18.5158, 73.7762,
+ '{wifi,power_outlets,quiet_zone,good_coffee}', 40, 'quiet', 'few', 4.7, 128,
+ '{"monday":{"open":"09:00","close":"22:00","closed":false},"tuesday":{"open":"09:00","close":"22:00","closed":false},"wednesday":{"open":"09:00","close":"22:00","closed":false},"thursday":{"open":"09:00","close":"22:00","closed":false},"friday":{"open":"09:00","close":"23:00","closed":false},"saturday":{"open":"09:00","close":"23:00","closed":false},"sunday":{"open":"10:00","close":"21:00","closed":false}}',
+ 1),
+
+('The Flour Works',
+ 'Bright, modern café popular with the startup crowd. Fast fibre WiFi, ample power points, and the best brunch in Kalyani Nagar.',
+ '3, Lakeview Colony, Kalyani Nagar', 'Kalyani Nagar', 18.5498, 73.9024,
+ '{wifi,power_outlets,food,good_coffee,outdoor_seating}', 80, 'moderate', 'plenty', 4.5, 214,
+ '{"monday":{"open":"08:00","close":"22:00","closed":false},"tuesday":{"open":"08:00","close":"22:00","closed":false},"wednesday":{"open":"08:00","close":"22:00","closed":false},"thursday":{"open":"08:00","close":"22:00","closed":false},"friday":{"open":"08:00","close":"23:00","closed":false},"saturday":{"open":"09:00","close":"23:00","closed":false},"sunday":{"open":"09:00","close":"21:00","closed":false}}',
+ 2),
+
+('Café Goodluck',
+ 'A Pune institution since 1935. Iconic bun maska and Irani chai. No WiFi — but pure focus fuel.',
+ 'Deccan Gymkhana, FC Road', 'Deccan', 18.5079, 73.8394,
+ '{food,good_coffee}', null, 'lively', 'none', 4.3, 512,
+ '{"monday":{"open":"07:00","close":"22:30","closed":false},"tuesday":{"open":"07:00","close":"22:30","closed":false},"wednesday":{"open":"07:00","close":"22:30","closed":false},"thursday":{"open":"07:00","close":"22:30","closed":false},"friday":{"open":"07:00","close":"22:30","closed":false},"saturday":{"open":"07:00","close":"22:30","closed":false},"sunday":{"open":"07:00","close":"22:30","closed":false}}',
+ 1),
+
+('Café Peter',
+ 'Serene café in the heart of Koregaon Park. Great for focused work with lush outdoor seating and reliable WiFi.',
+ 'Lane 5, Koregaon Park', 'Koregaon Park', 18.5285, 73.8929,
+ '{wifi,power_outlets,outdoor_seating,food,good_coffee}', 50, 'quiet', 'few', 4.4, 189,
+ '{"monday":{"open":"08:00","close":"22:00","closed":false},"tuesday":{"open":"08:00","close":"22:00","closed":false},"wednesday":{"open":"08:00","close":"22:00","closed":false},"thursday":{"open":"08:00","close":"22:00","closed":false},"friday":{"open":"08:00","close":"23:00","closed":false},"saturday":{"open":"09:00","close":"23:00","closed":false},"sunday":{"open":"09:00","close":"21:00","closed":false}}',
+ 2),
+
+('Coffee Culture',
+ 'A developer favourite near Hinjewadi. Gigabit WiFi, power strips at every table, and parking for your commute.',
+ 'Wakad-Hinjewadi Rd, Wakad', 'Wakad', 18.5893, 73.7686,
+ '{wifi,power_outlets,quiet_zone,parking,good_coffee}', 120, 'quiet', 'plenty', 4.6, 97,
+ '{"monday":{"open":"07:30","close":"22:00","closed":false},"tuesday":{"open":"07:30","close":"22:00","closed":false},"wednesday":{"open":"07:30","close":"22:00","closed":false},"thursday":{"open":"07:30","close":"22:00","closed":false},"friday":{"open":"07:30","close":"23:00","closed":false},"saturday":{"open":"08:00","close":"23:00","closed":false},"sunday":{"open":"08:00","close":"21:00","closed":false}}',
+ 2),
+
+('Vohuman Café',
+ 'Classic Irani café with the best brun maska in Pune. Opens at 6:30 AM — ideal for early-bird coding sessions over chai.',
+ 'Sassoon Rd, Camp', 'Camp', 18.5121, 73.8820,
+ '{food,good_coffee}', null, 'lively', 'none', 4.8, 891,
+ '{"monday":{"open":"06:30","close":"11:00","closed":false},"tuesday":{"open":"06:30","close":"11:00","closed":false},"wednesday":{"open":"06:30","close":"11:00","closed":false},"thursday":{"open":"06:30","close":"11:00","closed":false},"friday":{"open":"06:30","close":"11:00","closed":false},"saturday":{"open":"06:30","close":"11:00","closed":false},"sunday":{"open":"06:30","close":"11:00","closed":false}}',
+ 1),
+
+('Third Wave Coffee',
+ 'Minimalist specialty café with pour-overs and 100 Mbps fibre. Wide tables built for laptops and long sprints.',
+ 'Aundh Rd, Aundh', 'Aundh', 18.5590, 73.8077,
+ '{wifi,power_outlets,quiet_zone,good_coffee,parking}', 100, 'quiet', 'plenty', 4.5, 143,
+ '{"monday":{"open":"08:00","close":"22:00","closed":false},"tuesday":{"open":"08:00","close":"22:00","closed":false},"wednesday":{"open":"08:00","close":"22:00","closed":false},"thursday":{"open":"08:00","close":"22:00","closed":false},"friday":{"open":"08:00","close":"22:00","closed":false},"saturday":{"open":"09:00","close":"23:00","closed":false},"sunday":{"open":"09:00","close":"22:00","closed":false}}',
+ 2),
+
+('Kalmane Koffee',
+ 'Estate-grown South Indian coffee roasted in-house. The quiet first floor is unbeatable for deep work on a weekday morning.',
+ 'SB Road, Shivajinagar', 'Shivajinagar', 18.5308, 73.8475,
+ '{wifi,power_outlets,quiet_zone,good_coffee}', 60, 'moderate', 'few', 4.4, 76,
+ '{"monday":{"open":"09:00","close":"21:30","closed":false},"tuesday":{"open":"09:00","close":"21:30","closed":false},"wednesday":{"open":"09:00","close":"21:30","closed":false},"thursday":{"open":"09:00","close":"21:30","closed":false},"friday":{"open":"09:00","close":"21:30","closed":false},"saturday":{"open":"09:00","close":"22:00","closed":false},"sunday":{"open":"09:00","close":"21:00","closed":false}}',
+ 2);
