@@ -64,8 +64,8 @@ out body;`;
   try {
     res = await fetch(OVERPASS_URL, {
       method: 'POST',
-      body: `data=${encodeURIComponent(query)}`,
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: query,
+      headers: { 'Content-Type': 'text/plain' },
       signal: controller.signal,
     });
   } finally {
