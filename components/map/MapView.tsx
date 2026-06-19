@@ -13,37 +13,122 @@ import { CafeMarker } from './CafeMarker';
 import { PUNE_CENTER } from '@/types';
 import { Cafe } from '@/types';
 
+const FALLBACK_HOURS = {
+  monday:    { open: '08:00', close: '22:00', closed: false },
+  tuesday:   { open: '08:00', close: '22:00', closed: false },
+  wednesday: { open: '08:00', close: '22:00', closed: false },
+  thursday:  { open: '08:00', close: '22:00', closed: false },
+  friday:    { open: '08:00', close: '23:00', closed: false },
+  saturday:  { open: '09:00', close: '23:00', closed: false },
+  sunday:    { open: '09:00', close: '21:00', closed: false },
+};
+
+const mean = (arr: number[]) =>
+  arr.length ? Math.round((arr.reduce((s, v) => s + v, 0) / arr.length) * 10) / 10 : null;
+
 async function mergeSupabaseRatings(cafes: Cafe[]): Promise<Cafe[]> {
-  if (cafes.length === 0) return cafes;
   try {
     const supabase = createClient();
-    const { data } = await supabase
+
+    // 1. Get Supabase café rows for our OSM IDs (+ any extra reviewed cafés)
+    const { data: cafeRows } = await supabase
       .from('cafes')
-      .select('osm_id, rating, review_count, wifi_speed_mbps, avg_wifi_rating, avg_noise_rating, avg_power_rating')
-      .in('osm_id', cafes.map((c) => c.id));
-    if (!data?.length) return cafes;
-    const map = new Map(data.map((d) => [d.osm_id, d]));
-    return cafes.map((c) => {
-      const sb = map.get(c.id);
-      return sb
-        ? {
-            ...c,
-            rating: Number(sb.rating) || 0,
-            review_count: sb.review_count || 0,
-            wifi_speed_mbps: sb.wifi_speed_mbps ?? null,
-            avg_wifi_rating: sb.avg_wifi_rating ?? null,
-            avg_noise_rating: sb.avg_noise_rating ?? null,
-            avg_power_rating: sb.avg_power_rating ?? null,
-          }
-        : c;
+      .select('id, osm_id, name, lat, lng, address, neighborhood, amenities, noise_level, power_outlets, price_range, opening_hours');
+
+    if (!cafeRows?.length) return cafes;
+
+    const osmToDbId = new Map(cafeRows.map((r) => [r.osm_id, r.id]));
+    const dbToOsmId = new Map(cafeRows.map((r) => [r.id,     r.osm_id]));
+    const dbIdSet   = new Set(cafeRows.map((r) => r.id));
+
+    // 2. Compute fresh aggregates straight from the reviews table
+    const { data: reviews } = await supabase
+      .from('reviews')
+      .select('cafe_id, rating, wifi_rating, noise_rating, power_rating')
+      .in('cafe_id', Array.from(dbIdSet));
+
+    type Agg = { count: number; ratings: number[]; wifi: number[]; noise: number[]; power: number[] };
+    const aggByDbId = new Map<string, Agg>();
+
+    for (const r of reviews ?? []) {
+      if (!aggByDbId.has(r.cafe_id))
+        aggByDbId.set(r.cafe_id, { count: 0, ratings: [], wifi: [], noise: [], power: [] });
+      const a = aggByDbId.get(r.cafe_id)!;
+      a.count++;
+      if (r.rating      != null) a.ratings.push(r.rating);
+      if (r.wifi_rating != null) a.wifi.push(r.wifi_rating);
+      if (r.noise_rating != null) a.noise.push(r.noise_rating);
+      if (r.power_rating != null) a.power.push(r.power_rating);
+    }
+
+    // osm_id → computed aggregate
+    const osmAgg = new Map(
+      Array.from(aggByDbId.entries()).map(([dbId, a]) => [
+        dbToOsmId.get(dbId)!,
+        { count: a.count, rating: mean(a.ratings), wifi: mean(a.wifi), noise: mean(a.noise), power: mean(a.power) },
+      ])
+    );
+
+    // 3. Overlay onto existing OSM cafés
+    const osmIdSet = new Set(cafes.map((c) => c.id));
+    const merged   = cafes.map((c) => {
+      const agg = osmAgg.get(c.id);
+      if (!agg) return c;
+      return {
+        ...c,
+        rating:           agg.rating ?? 0,
+        review_count:     agg.count,
+        avg_wifi_rating:  agg.wifi,
+        avg_noise_rating: agg.noise,
+        avg_power_rating: agg.power,
+      };
     });
+
+    // 4. Rescue reviewed cafés that were filtered out of OSM results
+    const now = new Date().toISOString();
+    const rescued: Cafe[] = cafeRows
+      .filter((r) => !osmIdSet.has(r.osm_id) && osmAgg.has(r.osm_id) && r.lat != null && r.lng != null)
+      .map((r) => {
+        const agg = osmAgg.get(r.osm_id)!;
+        return {
+          id:            r.osm_id,
+          name:          r.name,
+          description:   '',
+          address:       r.address      || '',
+          neighborhood:  r.neighborhood || '',
+          lat:           r.lat,
+          lng:           r.lng,
+          amenities:     r.amenities    || [],
+          noise_level:   r.noise_level  || 'moderate',
+          power_outlets: r.power_outlets || 'none',
+          price_range:   r.price_range  || 2,
+          opening_hours: r.opening_hours || FALLBACK_HOURS,
+          rating:           agg.rating ?? 0,
+          review_count:     agg.count,
+          wifi_speed_mbps:  null,
+          avg_wifi_rating:  agg.wifi,
+          avg_noise_rating: agg.noise,
+          avg_power_rating: agg.power,
+          images:     [],
+          phone:      null,
+          website:    null,
+          created_at: now,
+          updated_at: now,
+        };
+      });
+
+    return [...merged, ...rescued];
   } catch {
     return cafes;
   }
 }
 
-const SHEET_OPEN_BOTTOM = 'calc(82vh + 8px)';
-const SHEET_PEEK_BOTTOM = '150px';
+// Sheet sits bottom-14 (56px) above the nav; add that offset to each snap
+const SNAP_BOTTOM = {
+  peek: '148px',              // 72px handle + 56px nav + 20px buffer
+  mid:  'calc(46vh + 64px)', // mid sheet top + nav + buffer
+  full: 'calc(82vh + 64px)', // full sheet top + nav + buffer
+} as const;
 
 const userIcon = L.divIcon({
   html: `<div style="
@@ -116,7 +201,7 @@ function MapRefSetter() {
 
 function MapController({ onLocationDenied }: { onLocationDenied: () => void }) {
   const map = useMap();
-  const { setUserLocation, setCafes, setLoading, setSelectedCafe, setSheetOpen } = useCafeStore();
+  const { setUserLocation, setCafes, setLoading, setSelectedCafe, setSheetSnap } = useCafeStore();
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -143,7 +228,7 @@ function MapController({ onLocationDenied }: { onLocationDenied: () => void }) {
   useMapEvents({
     click() {
       setSelectedCafe(null);
-      setSheetOpen(false);
+      setSheetSnap('peek');
     },
   });
 
@@ -152,7 +237,7 @@ function MapController({ onLocationDenied }: { onLocationDenied: () => void }) {
 
 export function MapView() {
   const { filteredCafes, setSelectedCafe, setUserLocation, setCafes, setLoading,
-          userLocation, isLoading, isSheetOpen } = useCafeStore();
+          userLocation, isLoading, sheetSnap } = useCafeStore();
   const [locationDenied, setLocationDenied] = useState(false);
 
   const handleLocationDenied = useCallback(() => setLocationDenied(true), []);
@@ -209,7 +294,7 @@ export function MapView() {
       {/* Locate button — floats above sheet, moves with it */}
       <div
         className="absolute right-4 z-[800] transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]"
-        style={{ bottom: isSheetOpen ? SHEET_OPEN_BOTTOM : SHEET_PEEK_BOTTOM }}
+        style={{ bottom: SNAP_BOTTOM[sheetSnap] }}
       >
         <button
           onClick={handleLocate}

@@ -146,7 +146,6 @@ export function ReviewModal({ cafe, onClose }: ReviewModalProps) {
           user_id: user.id,
           rating,
           wifi_rating: wifiRating || null,
-          wifi_speed_mbps: speedNum && speedNum > 0 ? speedNum : null,
           noise_rating: noiseRating || null,
           power_rating: powerRating || null,
           comment: comment.trim() || null,
@@ -174,7 +173,7 @@ export function ReviewModal({ cafe, onClose }: ReviewModalProps) {
       const avgNoiseRating  = avg('noise_rating');
       const avgPowerRating  = avg('power_rating');
 
-      await supabase
+      const { error: aggErr } = await supabase
         .from('cafes')
         .update({
           rating: avgRating,
@@ -185,6 +184,8 @@ export function ReviewModal({ cafe, onClose }: ReviewModalProps) {
           avg_power_rating: avgPowerRating,
         })
         .eq('id', cafeRow.id);
+
+      if (aggErr) console.error('[ReviewModal] cafes aggregate update failed:', aggErr.message);
 
       updateCafe(cafe.id, {
         rating: avgRating,

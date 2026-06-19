@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/lib/store/authStore';
+import { useSavedStore } from '@/lib/store/savedStore';
 
 const AUTH_PATHS = ['/login', '/auth'];
 
@@ -13,6 +14,7 @@ function isAuthPath(pathname: string) {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setUser, setProfile, setLoading } = useAuthStore();
+  const { syncFromSupabase } = useSavedStore();
   const router = useRouter();
 
   useEffect(() => {
@@ -42,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
       if (user) {
         fetchProfile(user.id);
-        // Already authenticated — leave login page
+        syncFromSupabase(user.id);
         if (isAuthPath(window.location.pathname)) router.replace('/');
       } else {
         // No session — send to login
@@ -57,6 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(user);
         if (user) {
           fetchProfile(user.id);
+          syncFromSupabase(user.id);
           if (isAuthPath(window.location.pathname)) router.replace('/');
         } else {
           setProfile(null);

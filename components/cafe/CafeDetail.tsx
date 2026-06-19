@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { Cafe } from '@/types';
+import { useState, useEffect } from 'react';
+import { Cafe, Review } from '@/types';
 import { cn, formatRating, getPriceLabel, isOpenNow } from '@/lib/utils';
 import { useSavedStore } from '@/lib/store/savedStore';
+import { useAuthStore } from '@/lib/store/authStore';
+import { createClient } from '@/lib/supabase/client';
 import { AmenityBadge } from './AmenityBadge';
 import { ReviewModal } from './ReviewModal';
 import { MapPin, Star, Navigation, PenLine, Wifi, Zap, Volume2, Bookmark } from 'lucide-react';
@@ -26,7 +28,8 @@ const NOISE_LABEL: Record<string, string> = {
 
 export function CafeDetail({ cafe }: CafeDetailProps) {
   const open = isOpenNow(cafe.opening_hours);
-  const { isSaved, toggle } = useSavedStore();
+  const { isSaved, toggle, toggleAndSync } = useSavedStore();
+  const { user } = useAuthStore();
   const saved = isSaved(cafe.id);
   const [showReview, setShowReview] = useState(false);
 
@@ -140,7 +143,7 @@ export function CafeDetail({ cafe }: CafeDetailProps) {
           </button>
 
           <button
-            onClick={() => toggle(cafe.id)}
+            onClick={() => user ? toggleAndSync(cafe, user.id) : toggle(cafe)}
             className={cn(
               'w-12 rounded-2xl border flex items-center justify-center transition-colors flex-shrink-0',
               saved

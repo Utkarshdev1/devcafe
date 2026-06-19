@@ -27,14 +27,22 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  const query = `[out:json][timeout:8];
+  const query = `[out:json][timeout:15];
 (
   node["amenity"="cafe"](around:${radius},${lat},${lng});
   node["amenity"="coffee_shop"](around:${radius},${lat},${lng});
   node["shop"="coffee"](around:${radius},${lat},${lng});
-  node["amenity"="restaurant"]["cuisine"~"coffee|cafe",i](around:${radius},${lat},${lng});
+  node["amenity"="bar"](around:${radius},${lat},${lng});
+  node["amenity"="pub"](around:${radius},${lat},${lng});
+  node["amenity"="bakery"](around:${radius},${lat},${lng});
+  node["shop"="bakery"](around:${radius},${lat},${lng});
+  way["amenity"="cafe"](around:${radius},${lat},${lng});
+  way["amenity"="bar"](around:${radius},${lat},${lng});
+  way["amenity"="pub"](around:${radius},${lat},${lng});
+  way["amenity"="bakery"](around:${radius},${lat},${lng});
+  way["shop"="bakery"](around:${radius},${lat},${lng});
 );
-out body;`;
+out body center;`;
 
   // Race all instances — first successful response wins
   const data = await Promise.any(

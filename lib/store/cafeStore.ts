@@ -3,6 +3,7 @@ import { Cafe, CafeFilter, MapViewport, PUNE_CENTER } from '@/types';
 import { distanceKm } from '@/lib/utils';
 
 type UserLocation = { lat: number; lng: number };
+export type SheetSnap = 'peek' | 'mid' | 'full';
 
 interface CafeState {
   cafes: Cafe[];
@@ -10,7 +11,7 @@ interface CafeState {
   selectedCafe: Cafe | null;
   filter: CafeFilter;
   viewport: MapViewport;
-  isSheetOpen: boolean;
+  sheetSnap: SheetSnap;
   isLoading: boolean;
   userLocation: UserLocation | null;
 
@@ -19,7 +20,7 @@ interface CafeState {
   updateCafe: (id: string, patch: Partial<Cafe>) => void;
   setFilter: (filter: Partial<CafeFilter>) => void;
   setViewport: (viewport: Partial<MapViewport>) => void;
-  setSheetOpen: (open: boolean) => void;
+  setSheetSnap: (snap: SheetSnap) => void;
   setLoading: (loading: boolean) => void;
   setUserLocation: (loc: UserLocation | null) => void;
   resetFilter: () => void;
@@ -65,7 +66,7 @@ export const useCafeStore = create<CafeState>((set, get) => ({
   selectedCafe: null,
   filter: defaultFilter,
   viewport: PUNE_CENTER,
-  isSheetOpen: false,
+  sheetSnap: 'peek',
   isLoading: false,
   userLocation: null,
 
@@ -73,7 +74,7 @@ export const useCafeStore = create<CafeState>((set, get) => ({
     set({ cafes, filteredCafes: derive(cafes, get().filter, get().userLocation) }),
 
   setSelectedCafe: (cafe) =>
-    set({ selectedCafe: cafe, isSheetOpen: !!cafe }),
+    set({ selectedCafe: cafe, sheetSnap: cafe ? 'full' : 'mid' }),
 
   updateCafe: (id, patch) =>
     set((s) => {
@@ -91,7 +92,7 @@ export const useCafeStore = create<CafeState>((set, get) => ({
   setViewport: (partial) =>
     set((s) => ({ viewport: { ...s.viewport, ...partial } })),
 
-  setSheetOpen: (open) => set({ isSheetOpen: open }),
+  setSheetSnap: (snap) => set({ sheetSnap: snap }),
 
   setLoading: (loading) => set({ isLoading: loading }),
 

@@ -8,11 +8,9 @@ import { CafeCard } from '@/components/cafe/CafeCard';
 import { BottomNav } from '@/components/layout/BottomNav';
 
 export default function SavedPage() {
-  const { cafes, setSelectedCafe } = useCafeStore();
-  const { savedIds, _hasHydrated } = useSavedStore();
+  const { setSelectedCafe } = useCafeStore();
+  const { savedCafes, _hasHydrated } = useSavedStore();
   const router = useRouter();
-
-  const savedCafes = cafes.filter((c) => savedIds.includes(c.id));
 
   return (
     <div className="flex flex-col h-screen bg-white">
