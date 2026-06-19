@@ -138,8 +138,6 @@ export function ReviewModal({ cafe, onClose }: ReviewModalProps) {
 
       if (cafeErr) throw cafeErr;
 
-      const speedNum = wifiSpeed ? parseInt(wifiSpeed, 10) : null;
-
       const { error: reviewErr } = await supabase.from('reviews').upsert(
         {
           cafe_id: cafeRow.id,
@@ -158,20 +156,20 @@ export function ReviewModal({ cafe, onClose }: ReviewModalProps) {
       // Compute averages from all reviews for this café
       const { data: allReviews } = await supabase
         .from('reviews')
-        .select('rating, wifi_rating, wifi_speed_mbps, noise_rating, power_rating')
+        .select('rating, wifi_rating, noise_rating, power_rating')
         .eq('cafe_id', cafeRow.id);
 
       const reviewCount = allReviews?.length ?? 1;
-      const avg = (field: 'rating' | 'wifi_rating' | 'wifi_speed_mbps' | 'noise_rating' | 'power_rating') => {
+      const avg = (field: 'rating' | 'wifi_rating' | 'noise_rating' | 'power_rating') => {
         const vals = (allReviews ?? []).map((r) => r[field]).filter((v): v is number => v != null);
         return vals.length ? Math.round((vals.reduce((s, v) => s + v, 0) / vals.length) * 10) / 10 : null;
       };
 
-      const avgRating       = avg('rating') ?? rating;
-      const avgWifiRating   = avg('wifi_rating');
-      const avgWifiSpeed    = avg('wifi_speed_mbps');
-      const avgNoiseRating  = avg('noise_rating');
-      const avgPowerRating  = avg('power_rating');
+      const avgRating      = avg('rating') ?? rating;
+      const avgWifiRating  = avg('wifi_rating');
+      const avgWifiSpeed   = wifiSpeed ? parseInt(wifiSpeed, 10) : null;
+      const avgNoiseRating = avg('noise_rating');
+      const avgPowerRating = avg('power_rating');
 
       const { error: aggErr } = await supabase
         .from('cafes')

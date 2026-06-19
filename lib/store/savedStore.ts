@@ -68,7 +68,6 @@ export const useSavedStore = create<SavedState>()(
           const remote: Cafe[] = (data ?? []).map((r) => r.cafe_data as Cafe);
           const local = get().savedCafes;
           const remoteIds = new Set(remote.map((c) => c.id));
-          const localIds  = new Set(local.map((c) => c.id));
 
           // Merge: remote wins for duplicates, local-only items are pushed up
           const merged = [
@@ -90,10 +89,6 @@ export const useSavedStore = create<SavedState>()(
             );
           }
 
-          // Remove from Supabase anything the user unsaved locally
-          // (ids in remote but not in local after a previous unsave)
-          const removedRemotely = remote.filter((c) => !localIds.has(c.id) && localOnly.length === 0);
-          // Note: we only remove if local had previously synced (avoid wiping on first login)
         } catch (err) {
           console.error('[savedStore] syncFromSupabase failed:', err);
         }

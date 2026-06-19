@@ -37,8 +37,7 @@ async function mergeSupabaseRatings(cafes: Cafe[]): Promise<Cafe[]> {
 
     if (!cafeRows?.length) return cafes;
 
-    const osmToDbId = new Map(cafeRows.map((r) => [r.osm_id, r.id]));
-    const dbToOsmId = new Map(cafeRows.map((r) => [r.id,     r.osm_id]));
+    const dbToOsmId = new Map(cafeRows.map((r) => [r.id, r.osm_id]));
     const dbIdSet   = new Set(cafeRows.map((r) => r.id));
 
     // 2. Compute fresh aggregates straight from the reviews table

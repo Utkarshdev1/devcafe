@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Cafe, Review } from '@/types';
+import { useState } from 'react';
+import { Cafe } from '@/types';
 import { cn, formatRating, getPriceLabel, isOpenNow } from '@/lib/utils';
 import { useSavedStore } from '@/lib/store/savedStore';
 import { useAuthStore } from '@/lib/store/authStore';
-import { createClient } from '@/lib/supabase/client';
 import { AmenityBadge } from './AmenityBadge';
 import { ReviewModal } from './ReviewModal';
 import { MapPin, Star, Navigation, PenLine, Wifi, Zap, Volume2, Bookmark } from 'lucide-react';
